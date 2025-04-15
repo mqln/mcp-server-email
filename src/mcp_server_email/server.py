@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import smtplib
+import base64
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -24,12 +25,26 @@ load_dotenv()
 
 sender = os.getenv("SENDER")
 password = os.getenv("PASSWORD")
+email_config_base64 = os.getenv("EMAIL_CONFIG_BASE64")
 
 # Get the directory where the service is started
 server_dir = os.path.dirname(os.path.abspath(__file__))
 
 def initialization_email_config():
-    print(os.getcwd())
+    """
+    Loads email configuration from base64 encoded environment variable.
+    Falls back to file-based config if environment variable is not set.
+    """
+    if email_config_base64:
+        try:
+            decoded_config = base64.b64decode(email_config_base64).decode('utf-8')
+            return json.loads(decoded_config)
+        except Exception as e:
+            logger.error(f"Failed to decode EMAIL_CONFIG_BASE64: {e}")
+            logger.info("Falling back to file-based configuration")
+    
+    # Fallback to file-based configuration
+    logger.info("Using file-based email configuration")
     with open(os.path.join(server_dir, "email.json"), "r", encoding="UTF-8") as file:
         return json.load(file)
 
